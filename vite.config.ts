@@ -8,4 +8,5 @@ export default defineConfig({
   resolve: { alias: { "@": path.resolve(import.meta.dirname, "client", "src") } },
   root: path.resolve(import.meta.dirname, "client"),
   build: { outDir: path.resolve(import.meta.dirname, "dist"), emptyOutDir: true },
+  server: { host: true, allowedHosts: true },
 });

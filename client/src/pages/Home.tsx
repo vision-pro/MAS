@@ -80,7 +80,12 @@ export default function Home() {
   const [scrolled, setScrolled] = useState(false);
   const [menuOpen, setMenuOpen] = useState(false);
   const [progress, setProgress] = useState(0);
+  const [introIndex, setIntroIndex] = useState(0);
   const flavor = flavors[activeFlavor];
+  const introFlavors = flavors.slice(0, 6);
+  const introFlavor = introFlavors[introIndex];
+  const introPrevious = introFlavors[(introIndex + introFlavors.length - 1) % introFlavors.length];
+  const introNext = introFlavors[(introIndex + 1) % introFlavors.length];
   const flavorVars = { "--flavor-accent": flavor.accent, "--flavor-glow": flavor.glow } as CSSProperties;
 
   useEffect(() => {
@@ -93,6 +98,11 @@ export default function Home() {
     window.addEventListener("scroll", onScroll, { passive: true });
     return () => window.removeEventListener("scroll", onScroll);
   }, []);
+
+  useEffect(() => {
+    const cycle = window.setInterval(() => setIntroIndex((current) => (current + 1) % introFlavors.length), 4200);
+    return () => window.clearInterval(cycle);
+  }, [introFlavors.length]);
 
   const navigate = (id: string) => {
     setMenuOpen(false);
@@ -138,13 +148,20 @@ export default function Home() {
               </div>
             </motion.div>
             <motion.div className="hero-aside" initial={{ opacity: 0, x: -35 }} animate={{ opacity: 1, x: 0 }} transition={{ duration: .82, delay: .15, ease: [0.23, 1, 0.32, 1] }}>
-              <div className="opening-loop" aria-label="افتتاحية متحركة لهوية ماس">
-                <span className="opening-caption">MAS / OPENING SEQUENCE</span>
+              <div className="opening-loop intro-cinematic" style={{ "--intro-accent": introFlavor.accent, "--intro-glow": introFlavor.glow } as CSSProperties} aria-label="افتتاحية حركة لعرض نكهات ماس">
+                <div className="intro-topline"><span>MAS / FLAVOR MOTION</span><b>{String(introIndex + 1).padStart(2, "0")} / 06</b></div>
                 <span className="opening-halo halo-one" /><span className="opening-halo halo-two" />
+                <span className="intro-scan intro-scan-one" /><span className="intro-scan intro-scan-two" />
                 <div className="opening-stage"><span /><span /><span /></div>
-                <div className="opening-packs">
-                  {flavors.slice(0, 3).map((item, index) => <img key={item.name} className={`opening-pack pack-${index + 1}`} src={assetPath(item.image)} alt="" />)}
-                </div>
+                <motion.div className="intro-ghost intro-ghost-back" key={`back-${introPrevious.index}`} initial={{ opacity: 0, x: 20 }} animate={{ opacity: .32, x: 0 }} transition={{ duration: .55 }}><ProductPack flavor={introPrevious} className={introPrevious.shape === "box" ? "mas-box-intro-ghost" : "intro-ghost-pack"} /></motion.div>
+                <AnimatePresence mode="wait">
+                  <motion.div key={introFlavor.index} className="intro-feature-pack" initial={{ opacity: 0, y: 36, rotateY: -35, scale: .88 }} animate={{ opacity: 1, y: 0, rotateY: -15, scale: 1 }} exit={{ opacity: 0, y: -22, rotateY: 28, scale: .91 }} transition={{ duration: .72, ease: [0.23, 1, 0.32, 1] }}>
+                    <ProductPack flavor={introFlavor} className={introFlavor.shape === "box" ? "mas-box-intro" : "intro-feature-asset"} />
+                  </motion.div>
+                </AnimatePresence>
+                <motion.div className="intro-ghost intro-ghost-front" key={`front-${introNext.index}`} initial={{ opacity: 0, x: -20 }} animate={{ opacity: .34, x: 0 }} transition={{ duration: .55 }}><ProductPack flavor={introNext} className={introNext.shape === "box" ? "mas-box-intro-ghost" : "intro-ghost-pack"} /></motion.div>
+                <div className="intro-flavor-title"><span>النكهة الآن</span><strong>{introFlavor.name}</strong><em>{introFlavor.subtitle}</em></div>
+                <div className="intro-dots" role="tablist" aria-label="التحكم بافتتاحية النكهات">{introFlavors.map((item, index) => <button key={item.name} onClick={() => setIntroIndex(index)} className={index === introIndex ? "active" : ""} style={index === introIndex ? { backgroundColor: item.accent } : undefined} aria-label={`عرض نكهة ${item.name}`} />)}</div>
                 <div className="opening-light" />
               </div>
             </motion.div>
