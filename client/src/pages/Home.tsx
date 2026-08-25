@@ -82,7 +82,7 @@ export default function Home() {
   const [progress, setProgress] = useState(0);
   const [introIndex, setIntroIndex] = useState(0);
   const flavor = flavors[activeFlavor];
-  const introFlavors = flavors.slice(0, 6);
+  const introFlavors = flavors;
   const introFlavor = introFlavors[introIndex];
   const introPrevious = introFlavors[(introIndex + introFlavors.length - 1) % introFlavors.length];
   const introNext = introFlavors[(introIndex + 1) % introFlavors.length];
@@ -149,7 +149,7 @@ export default function Home() {
             </motion.div>
             <motion.div className="hero-aside" initial={{ opacity: 0, x: -35 }} animate={{ opacity: 1, x: 0 }} transition={{ duration: .82, delay: .15, ease: [0.23, 1, 0.32, 1] }}>
               <div className="opening-loop intro-cinematic" style={{ "--intro-accent": introFlavor.accent, "--intro-glow": introFlavor.glow } as CSSProperties} aria-label="افتتاحية حركة لعرض نكهات ماس">
-                <div className="intro-topline"><span>MAS / FLAVOR MOTION</span><b>{String(introIndex + 1).padStart(2, "0")} / 06</b></div>
+                <div className="intro-topline"><span>MAS / FLAVOR MOTION</span><b>{String(introIndex + 1).padStart(2, "0")} / {String(introFlavors.length).padStart(2, "0")}</b></div>
                 <span className="opening-halo halo-one" /><span className="opening-halo halo-two" />
                 <span className="intro-scan intro-scan-one" /><span className="intro-scan intro-scan-two" />
                 <div className="opening-stage"><span /><span /><span /></div>
