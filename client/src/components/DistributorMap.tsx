@@ -1,18 +1,7 @@
 /** نسخة GitHub Pages: بطاقات الفروع وروابط المسارات تعمل دون أي خدمة خلفية. */
 import { Building2, Clock3, ExternalLink, Filter, MapPin, Navigation, Phone, Store } from "lucide-react";
 import { useMemo, useState } from "react";
-
-type OutletType = "وكيل" | "نقطة بيع";
-type Branch = { name: string; address: string; province: string; type: OutletType; phone: string; mapQuery: string };
-
-const branches: Branch[] = [
-  { name: "مركز السلامي — الفرع الأول", address: "النجف، شارع أبو صخير، قرب مجسرات ثورة العشرين", province: "النجف", type: "وكيل", phone: "07807074707", mapQuery: "شارع أبو صخير قرب مجسرات ثورة العشرين، النجف، العراق" },
-  { name: "مركز السلامي — الفرع الثاني", address: "النجف، المدينة القديمة، ساحة الميدان مقابل شارع الصادق", province: "النجف", type: "وكيل", phone: "07717089673", mapQuery: "ساحة الميدان مقابل شارع الصادق، النجف، العراق" },
-  { name: "مركز السلامي — الفرع الثالث", address: "الكوفة، شارع الجمهورية، مجمع الكفيل سابقاً", province: "النجف", type: "وكيل", phone: "07809490359", mapQuery: "شارع الجمهورية، مجمع الكفيل، الكوفة، العراق" },
-  { name: "مركز السلامي — الفرع الرابع", address: "النجف، مكتب الرشيد، قرب تقاطع الهندية", province: "النجف", type: "وكيل", phone: "07808854063", mapQuery: "مكتب الرشيد قرب تقاطع الهندية، النجف، العراق" },
-  { name: "مركز السلامي — الفرع الخامس", address: "النجف، شارع المجمعات، ثاني استدارة وبعدها مباشرة", province: "النجف", type: "وكيل", phone: "07832275385", mapQuery: "شارع المجمعات، النجف، العراق" },
-  { name: "مركز السلامي — الفرع السادس", address: "النجف، شارع سلام جامعة، مجاور السلسلة الذهبية", province: "النجف", type: "وكيل", phone: "07766221620 · 07833224477", mapQuery: "شارع سلام جامعة، النجف، العراق" },
-];
+import { branches, type Branch, type OutletType } from "@/data/branches";
 
 export function DistributorMap() {
   const [province, setProvince] = useState("كل المحافظات");

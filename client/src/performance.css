@@ -1,0 +1,8 @@
+/* Performance overrides: the original PNG payloads are replaced by visual-equivalent WebP files. */
+.hero::before { background-image: linear-gradient(90deg, rgba(3,56,50,.58) 0%, rgba(3,78,65,.08) 58%, rgba(3,68,58,.24) 100%), url("/MAS/assets/mas-hero-liquid-glass.webp") !important; }
+.manifesto::before { background-image: linear-gradient(90deg, rgba(4,37,31,.82) 0%, rgba(4,37,31,.22) 60%), url("/MAS/assets/mas-brand-liquid-orb.webp") !important; }
+.campaign-visual::before { background-image: linear-gradient(0deg, rgba(4,62,50,.38), transparent 55%), url("/MAS/assets/mas-flavor-citrus-atmosphere.webp") !important; }
+.endcap { background-image: linear-gradient(145deg, rgba(6,72,60,.86), rgba(10,165,128,.79)), url("/MAS/assets/mas-flavor-pomegranate-atmosphere.webp") !important; }
+
+/* Sections outside the first viewport should defer rendering work. */
+.manifesto, .campaign, .distributors, .endcap { content-visibility: auto; contain-intrinsic-size: auto 760px; }

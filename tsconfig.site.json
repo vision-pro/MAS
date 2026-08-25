@@ -1,0 +1,11 @@
+{
+  "extends": "./tsconfig.json",
+  "include": [
+    "client/src/main.tsx",
+    "client/src/App.tsx",
+    "client/src/pages/Home.tsx",
+    "client/src/components/DistributorMap.tsx",
+    "client/src/data/**/*.ts"
+  ],
+  "exclude": ["node_modules", "dist"]
+}

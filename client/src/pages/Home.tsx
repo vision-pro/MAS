@@ -3,9 +3,11 @@
  * السؤال الحاكم: هل يعزز هذا الاختيار حضور ماس الواثق والمنعش؟
  */
 import { AnimatePresence, motion } from "framer-motion";
-import { ArrowDown, ArrowLeft, ChevronDown, Menu, MoveLeft, Sparkles, X } from "lucide-react";
-import { useEffect, useState, type CSSProperties } from "react";
-import { DistributorMap } from "@/components/DistributorMap";
+import { ArrowDown, ArrowLeft, ChevronDown, Menu, Minus, MoveLeft, Plus, ShoppingBag, Sparkles, X } from "lucide-react";
+import { lazy, Suspense, useEffect, useState, type CSSProperties } from "react";
+import { branches } from "@/data/branches";
+
+const DistributorMap = lazy(() => import("@/components/DistributorMap").then((module) => ({ default: module.DistributorMap })));
 
 type Flavor = {
   index: string;
@@ -42,12 +44,14 @@ const flavors: Flavor[] = [
 ];
 
 const assetNames: Record<string, string> = {
-  "mas-lemon-mint-isolated-clean_2effaf59.png": "mas-lemon-mint-isolated-clean.png",
-  "mas-love-isolated-clean_b0feab2b.png": "mas-love-isolated-clean.png",
-  "mas-pomegranate-isolated-clean_56d86549.png": "mas-pomegranate-isolated-clean.png",
-  "mas-havana-isolated-clean_bf77702a.png": "mas-havana-isolated-clean.png",
-  "mas-english-isolated-clean_894f1b06.png": "mas-english-isolated-clean.png",
-  "mas-lady-killer-isolated-clean_94e41dbc.png": "mas-lady-killer-isolated-clean.png",
+  "mas-lemon-mint-isolated-clean_2effaf59.png": "mas-lemon-mint-isolated-clean.webp",
+  "mas-love-isolated-clean_b0feab2b.png": "mas-love-isolated-clean.webp",
+  "mas-pomegranate-isolated-clean_56d86549.png": "mas-pomegranate-isolated-clean.webp",
+  "mas-havana-isolated-clean_bf77702a.png": "mas-havana-isolated-clean.webp",
+  "mas-english-isolated-clean_894f1b06.png": "mas-english-isolated-clean.webp",
+  "mas-lady-killer-isolated-clean_94e41dbc.png": "mas-lady-killer-isolated-clean.webp",
+  "mas-lemon-mint-isolated-clean.png": "mas-lemon-mint-isolated-clean.webp",
+  "mas-symbol.png": "mas-symbol.webp",
   "milk_573a1393.webp": "milk.webp", "halabi_9b5701b5.webp": "halabi.webp", "istanbul-nights_1515e6ed.webp": "istanbul-nights.webp", "caramel_4bde02da.webp": "caramel.webp", "baku-nights_4f4ce2bc.webp": "baku-nights.webp", "biscuit_006442b5.webp": "biscuit.webp", "two-apples_a6fceef7.webp": "two-apples.webp", "english-plus_5bd159b3.webp": "english-plus.webp", "three-apples_1b7213b9.webp": "three-apples.webp", "cinnamon-gum_c0c01e5a.webp": "cinnamon-gum.webp", "cake_0c7d6274.webp": "cake.webp", "mint_40aa7aa0.webp": "mint.webp",
 };
 
@@ -67,11 +71,11 @@ function scrollToSection(id: string) {
   document.getElementById(id)?.scrollIntoView({ behavior: "smooth", block: "start" });
 }
 
-function ProductPack({ flavor, className = "" }: { flavor: Flavor; className?: string }) {
-  if (flavor.shape !== "box") return <img className={className} src={assetPath(flavor.image)} alt={`معسل ماس ${flavor.name}`} />;
+function ProductPack({ flavor, className = "", loading = "lazy" }: { flavor: Flavor; className?: string; loading?: "eager" | "lazy" }) {
+  if (flavor.shape !== "box") return <img className={className} src={assetPath(flavor.image)} alt={`معسل ماس ${flavor.name}`} loading={loading} decoding="async" />;
   return <div className={`mas-box ${className}`} style={{ "--box-accent": flavor.accent } as CSSProperties} aria-label={`علبة ماس ${flavor.name}`}>
     <span className="box-lid" /><span className="box-side" /><span className="box-bottom" />
-    <span className="box-front"><img src={assetPath(flavor.image)} alt={`علبة ماس ${flavor.name}`} /></span>
+    <span className="box-front"><img src={assetPath(flavor.image)} alt={`علبة ماس ${flavor.name}`} loading={loading} decoding="async" /></span>
   </div>;
 }
 
@@ -81,12 +85,18 @@ export default function Home() {
   const [menuOpen, setMenuOpen] = useState(false);
   const [progress, setProgress] = useState(0);
   const [introIndex, setIntroIndex] = useState(0);
+  const [cart, setCart] = useState<Record<string, number>>({});
+  const [selectedBranchId, setSelectedBranchId] = useState(branches[0].id);
+  const [orderMessage, setOrderMessage] = useState("");
   const flavor = flavors[activeFlavor];
   const introFlavors = flavors;
   const introFlavor = introFlavors[introIndex];
   const introPrevious = introFlavors[(introIndex + introFlavors.length - 1) % introFlavors.length];
   const introNext = introFlavors[(introIndex + 1) % introFlavors.length];
   const flavorVars = { "--flavor-accent": flavor.accent, "--flavor-glow": flavor.glow } as CSSProperties;
+  const cartItems = flavors.flatMap((item) => cart[item.index] ? [{ flavor: item, quantity: cart[item.index] }] : []);
+  const selectedBranch = branches.find((branch) => branch.id === selectedBranchId) ?? branches[0];
+  const cartQuantity = cartItems.reduce((total, item) => total + item.quantity, 0);
 
   useEffect(() => {
     const onScroll = () => {
@@ -113,6 +123,34 @@ export default function Home() {
     setActiveFlavor(index);
   };
 
+  const updateCart = (flavorIndex: string, adjustment: number) => {
+    setCart((current) => {
+      const nextQuantity = Math.max(0, (current[flavorIndex] ?? 0) + adjustment);
+      if (!nextQuantity) {
+        const { [flavorIndex]: _removed, ...remaining } = current;
+        return remaining;
+      }
+      return { ...current, [flavorIndex]: nextQuantity };
+    });
+    setOrderMessage("");
+  };
+
+  const openOrderRequest = () => {
+    if (!cartItems.length) {
+      setOrderMessage("أضف نكهة واحدة على الأقل إلى طلبك أولاً.");
+      return;
+    }
+    const phone = selectedBranch.phone.match(/0\d{10}/)?.[0];
+    if (!phone) {
+      setOrderMessage("رقم التواصل لهذا الفرع غير متاح حالياً.");
+      return;
+    }
+    const items = cartItems.map((item) => `- ${item.flavor.name} × ${item.quantity}`).join("\n");
+    const text = `طلب شراء من موقع ماس\n\nالفرع المختار: ${selectedBranch.name}\nالعنوان: ${selectedBranch.address}\n\nالنكهات المطلوبة:\n${items}\n\nيرجى تأكيد التوفر والسعر وطريقة الاستلام.`;
+    window.open(`https://wa.me/964${phone.slice(1)}?text=${encodeURIComponent(text)}`, "_blank", "noopener,noreferrer");
+    setOrderMessage("تم فتح رسالة طلب للفرع المختار.");
+  };
+
   return (
     <div className="site-shell">
       <div className="top-progress" style={{ transform: `scaleX(${progress})` }} />
@@ -126,6 +164,7 @@ export default function Home() {
             <a href="#flavors" onClick={(event) => { event.preventDefault(); navigate("flavors"); }}>النكهات</a>
             <a href="#story" onClick={(event) => { event.preventDefault(); navigate("story"); }}>قصة ماس</a>
             <a href="#range" onClick={(event) => { event.preventDefault(); navigate("range"); }}>المكتبة</a>
+            <a href="#store" onClick={(event) => { event.preventDefault(); navigate("store"); }}>المتجر</a>
             <a href="#distributors" onClick={(event) => { event.preventDefault(); navigate("distributors"); }}>الموزعون</a>
             <a href="#campaign" onClick={(event) => { event.preventDefault(); navigate("campaign"); }}>الحضور</a>
           </nav>
@@ -153,13 +192,13 @@ export default function Home() {
                 <span className="opening-halo halo-one" /><span className="opening-halo halo-two" />
                 <span className="intro-scan intro-scan-one" /><span className="intro-scan intro-scan-two" />
                 <div className="opening-stage"><span /><span /><span /></div>
-                <motion.div className="intro-ghost intro-ghost-back" key={`back-${introPrevious.index}`} initial={{ opacity: 0, x: 20 }} animate={{ opacity: .32, x: 0 }} transition={{ duration: .55 }}><ProductPack flavor={introPrevious} className={introPrevious.shape === "box" ? "mas-box-intro-ghost" : "intro-ghost-pack"} /></motion.div>
+                <motion.div className="intro-ghost intro-ghost-back" key={`back-${introPrevious.index}`} initial={{ opacity: 0, x: 20 }} animate={{ opacity: .32, x: 0 }} transition={{ duration: .55 }}><ProductPack flavor={introPrevious} className={introPrevious.shape === "box" ? "mas-box-intro-ghost" : "intro-ghost-pack"} loading="eager" /></motion.div>
                 <AnimatePresence mode="wait">
                   <motion.div key={introFlavor.index} className="intro-feature-pack" initial={{ opacity: 0, y: 36, rotateY: -35, scale: .88 }} animate={{ opacity: 1, y: 0, rotateY: -15, scale: 1 }} exit={{ opacity: 0, y: -22, rotateY: 28, scale: .91 }} transition={{ duration: .72, ease: [0.23, 1, 0.32, 1] }}>
-                    <ProductPack flavor={introFlavor} className={introFlavor.shape === "box" ? "mas-box-intro" : "intro-feature-asset"} />
+                    <ProductPack flavor={introFlavor} className={introFlavor.shape === "box" ? "mas-box-intro" : "intro-feature-asset"} loading="eager" />
                   </motion.div>
                 </AnimatePresence>
-                <motion.div className="intro-ghost intro-ghost-front" key={`front-${introNext.index}`} initial={{ opacity: 0, x: -20 }} animate={{ opacity: .34, x: 0 }} transition={{ duration: .55 }}><ProductPack flavor={introNext} className={introNext.shape === "box" ? "mas-box-intro-ghost" : "intro-ghost-pack"} /></motion.div>
+                <motion.div className="intro-ghost intro-ghost-front" key={`front-${introNext.index}`} initial={{ opacity: 0, x: -20 }} animate={{ opacity: .34, x: 0 }} transition={{ duration: .55 }}><ProductPack flavor={introNext} className={introNext.shape === "box" ? "mas-box-intro-ghost" : "intro-ghost-pack"} loading="eager" /></motion.div>
                 <div className="intro-flavor-title"><span>النكهة الآن</span><strong>{introFlavor.name}</strong><em>{introFlavor.subtitle}</em></div>
                 <div className="intro-dots" role="tablist" aria-label="التحكم بافتتاحية النكهات">{introFlavors.map((item, index) => <button key={item.name} onClick={() => setIntroIndex(index)} className={index === introIndex ? "active" : ""} style={index === introIndex ? { backgroundColor: item.accent } : undefined} aria-label={`عرض نكهة ${item.name}`} />)}</div>
                 <div className="opening-light" />
@@ -191,7 +230,7 @@ export default function Home() {
             <div className="flavor-visual" style={flavorVars}>
               <AnimatePresence mode="wait">
                 <motion.div key={flavor.image} className="flavor-image-card flavor-3d" initial={{ opacity: 0, rotateY: -17, rotateZ: -6, y: 25 }} animate={{ opacity: 1, rotateY: -7, rotateZ: 3, y: 0 }} exit={{ opacity: 0, rotateY: 18, rotateZ: 8, y: -12 }} transition={{ duration: .48, ease: [0.23, 1, 0.32, 1] }}>
-                  <ProductPack flavor={flavor} className={flavor.shape === "box" ? "mas-box-stage" : ""} />
+                  <ProductPack flavor={flavor} className={flavor.shape === "box" ? "mas-box-stage" : ""} loading="eager" />
                   <span className="card-shine" />
                 </motion.div>
               </AnimatePresence>
@@ -235,7 +274,7 @@ export default function Home() {
             <div className="section-label">حضور العلامة</div>
             <h2 className="section-heading">ماس أقرب من<br /><span>مجرد منتج.</span></h2>
             <div className="campaign-grid">
-              <div className="campaign-visual"><img src={assetPath("mas-lemon-mint-isolated-clean.png")} alt="عبوة معسل ماس ليمون ونعناع" /><div className="big-type">مــاس</div></div>
+              <div className="campaign-visual"><img src={assetPath("mas-lemon-mint-isolated-clean.png")} alt="عبوة معسل ماس ليمون ونعناع" loading="lazy" decoding="async" /><div className="big-type">مــاس</div></div>
               <div className="campaign-list">{campaignItems.map(([title, text], index) => <article className="campaign-item" key={title}><span className="item-number">0{index + 1}</span><div><h3>{title}</h3><p>{text}</p></div><Sparkles size={16} /></article>)}</div>
             </div>
           </div>
@@ -244,13 +283,39 @@ export default function Home() {
         <section className="section distributors" id="distributors">
           <div className="section-inner">
             <div className="distributors-heading"><div><div className="section-label">أين تجد ماس</div><h2 className="section-heading">النكهة الأقرب.<br /><span>على الخريطة.</span></h2></div><p className="range-note">ابحث باسم مدينتك لعرض نقاط البيع المنشورة في خرائط Google، ثم افتح المسار للوصول إليها مباشرة.</p></div>
-            <DistributorMap />
+            <Suspense fallback={<div className="distributor-experience"><p>يتم تجهيز خريطة نقاط البيع…</p></div>}><DistributorMap /></Suspense>
+          </div>
+        </section>
+
+        <section className="section storefront" id="store">
+          <div className="section-inner">
+            <div className="storefront-heading"><div><div className="section-label">متجر ماس</div><h2 className="section-heading">اختر نكهاتك.<br /><span>واستلمها من فرعك.</span></h2></div><p className="range-note">أضف النكهات إلى الطلب، ثم حدّد الفرع المناسب لإرسال طلب التوفر والسعر مباشرةً إليه. لا تظهر أسعار أو مخزون غير مؤكّد في الموقع.</p></div>
+            <div className="storefront-layout">
+              <div className="storefront-catalog" aria-label="نكهات المتجر">
+                {flavors.map((item) => <article className="store-product" key={`store-${item.index}`} style={{ "--store-accent": item.accent } as CSSProperties}>
+                  <div className="store-product-visual"><ProductPack flavor={item} className={item.shape === "box" ? "mas-box-store" : "store-product-pack"} /></div>
+                  <div><span>{item.subtitle}</span><h3>{item.name}</h3><p>{item.note}</p></div>
+                  <button className="store-add" onClick={() => updateCart(item.index, 1)} aria-label={`إضافة ${item.name} إلى الطلب`}><Plus size={15} />إضافة</button>
+                </article>)}
+              </div>
+              <aside className="store-cart" aria-live="polite">
+                <div className="store-cart-head"><span><ShoppingBag size={18} /></span><div><p>طلبك الحالي</p><h3>{cartQuantity ? `${cartQuantity} منتج` : "السلة فارغة"}</h3></div></div>
+                <div className="cart-items">
+                  {cartItems.map(({ flavor: item, quantity }) => <div className="cart-item" key={`cart-${item.index}`}><div><b>{item.name}</b><span>{item.subtitle}</span></div><div className="cart-quantity"><button onClick={() => updateCart(item.index, -1)} aria-label={`تقليل ${item.name}`}><Minus size={13} /></button><strong>{quantity}</strong><button onClick={() => updateCart(item.index, 1)} aria-label={`زيادة ${item.name}`}><Plus size={13} /></button></div></div>)}
+                  {!cartItems.length && <p className="cart-empty">لم تضف أي نكهة بعد. ابدأ من قائمة النكهات.</p>}
+                </div>
+                <label className="branch-select"><span>فرع الاستلام أو التواصل</span><select value={selectedBranchId} onChange={(event) => { setSelectedBranchId(event.target.value); setOrderMessage(""); }}>{branches.map((branch) => <option value={branch.id} key={branch.id}>{branch.name} — {branch.address}</option>)}</select></label>
+                <div className="branch-delivery"><b>{selectedBranch.name}</b><span>{selectedBranch.address}</span></div>
+                <button className="store-checkout" onClick={openOrderRequest}><ShoppingBag size={16} />إرسال طلب إلى الفرع</button>
+                {orderMessage && <p className="store-order-message">{orderMessage}</p>}
+              </aside>
+            </div>
           </div>
         </section>
 
         <section className="endcap">
           <div className="endcap-content">
-            <img className="end-symbol" src={assetPath("mas-symbol.png")} alt="رمز ماس" />
+            <img className="end-symbol" src={assetPath("mas-symbol.png")} alt="رمز ماس" loading="lazy" decoding="async" />
             <h2>اختَر لحظتك.<br />اختَر ماس.</h2>
             <p>نكهات حاضرة، تجربة متوازنة، وهوية تترك أثراً في كل مكان تصل إليه.</p>
             <button className="button-primary" onClick={() => scrollToSection("top")}>العودة إلى البداية <ArrowLeft size={16} /></button>
