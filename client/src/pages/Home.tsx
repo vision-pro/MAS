@@ -88,6 +88,8 @@ export default function Home() {
   const [cart, setCart] = useState<Record<string, number>>({});
   const [selectedBranchId, setSelectedBranchId] = useState(branches[0].id);
   const [orderMessage, setOrderMessage] = useState("");
+  const [cartNotice, setCartNotice] = useState("");
+  const [cartPulse, setCartPulse] = useState(0);
   const flavor = flavors[activeFlavor];
   const introFlavors = flavors;
   const introFlavor = introFlavors[introIndex];
@@ -114,6 +116,12 @@ export default function Home() {
     return () => window.clearInterval(cycle);
   }, [introFlavors.length]);
 
+  useEffect(() => {
+    if (!cartNotice) return;
+    const timer = window.setTimeout(() => setCartNotice(""), 2400);
+    return () => window.clearTimeout(timer);
+  }, [cartNotice]);
+
   const navigate = (id: string) => {
     setMenuOpen(false);
     window.setTimeout(() => scrollToSection(id), 0);
@@ -124,6 +132,7 @@ export default function Home() {
   };
 
   const updateCart = (flavorIndex: string, adjustment: number) => {
+    const changedFlavor = flavors.find((item) => item.index === flavorIndex);
     setCart((current) => {
       const nextQuantity = Math.max(0, (current[flavorIndex] ?? 0) + adjustment);
       if (!nextQuantity) {
@@ -132,6 +141,10 @@ export default function Home() {
       }
       return { ...current, [flavorIndex]: nextQuantity };
     });
+    if (adjustment > 0 && changedFlavor) {
+      setCartNotice(`أُضيفت ${changedFlavor.name} إلى السلة`);
+      setCartPulse((current) => current + 1);
+    }
     setOrderMessage("");
   };
 
@@ -145,8 +158,8 @@ export default function Home() {
       setOrderMessage("رقم التواصل لهذا الفرع غير متاح حالياً.");
       return;
     }
-    const items = cartItems.map((item) => `- ${item.flavor.name} × ${item.quantity}`).join("\n");
-    const text = `طلب شراء من موقع ماس\n\nالفرع المختار: ${selectedBranch.name}\nالعنوان: ${selectedBranch.address}\n\nالنكهات المطلوبة:\n${items}\n\nيرجى تأكيد التوفر والسعر وطريقة الاستلام.`;
+    const items = cartItems.map(({ flavor: item, quantity }) => `• ${item.name}\n  الكمية: ${quantity}`).join("\n\n");
+    const text = `طلب شراء — موقع ماس\n\nالفرع المختار: ${selectedBranch.name}\nالعنوان: ${selectedBranch.address}\nرقم التواصل: ${selectedBranch.phone}\n\nتفاصيل النكهات المطلوبة:\n${items}\n\nيرجى تأكيد التوفر وطريقة الاستلام.`;
     window.open(`https://wa.me/964${phone.slice(1)}?text=${encodeURIComponent(text)}`, "_blank", "noopener,noreferrer");
     setOrderMessage("تم فتح رسالة طلب للفرع المختار.");
   };
@@ -289,7 +302,7 @@ export default function Home() {
 
         <section className="section storefront" id="store">
           <div className="section-inner">
-            <div className="storefront-heading"><div><div className="section-label">متجر ماس</div><h2 className="section-heading">اختر نكهاتك.<br /><span>واستلمها من فرعك.</span></h2></div><p className="range-note">أضف النكهات إلى الطلب، ثم حدّد الفرع المناسب لإرسال طلب التوفر والسعر مباشرةً إليه. لا تظهر أسعار أو مخزون غير مؤكّد في الموقع.</p></div>
+            <div className="storefront-heading"><div><div className="section-label">متجر ماس</div><h2 className="section-heading">اختر نكهاتك.<br /><span>واستلمها من فرعك.</span></h2></div><p className="range-note">أضف النكهات إلى الطلب، ثم حدّد الفرع المناسب لإرسال طلب التوفر وطريقة الاستلام مباشرةً إليه. لا تظهر أسعار أو مخزون غير مؤكّد في الموقع.</p></div>
             <div className="storefront-layout">
               <div className="storefront-catalog" aria-label="نكهات المتجر">
                 {flavors.map((item) => <article className="store-product" key={`store-${item.index}`} style={{ "--store-accent": item.accent } as CSSProperties}>
@@ -298,7 +311,7 @@ export default function Home() {
                   <button className="store-add" onClick={() => updateCart(item.index, 1)} aria-label={`إضافة ${item.name} إلى الطلب`}><Plus size={15} />إضافة</button>
                 </article>)}
               </div>
-              <aside className="store-cart" aria-live="polite">
+              <motion.aside key={`cart-${cartPulse}`} className="store-cart" aria-live="polite" initial={false} animate={cartPulse ? { scale: [1, 1.018, 1] } : undefined} transition={{ duration: .34, ease: [0.23, 1, 0.32, 1] }}>
                 <div className="store-cart-head"><span><ShoppingBag size={18} /></span><div><p>طلبك الحالي</p><h3>{cartQuantity ? `${cartQuantity} منتج` : "السلة فارغة"}</h3></div></div>
                 <div className="cart-items">
                   {cartItems.map(({ flavor: item, quantity }) => <div className="cart-item" key={`cart-${item.index}`}><div><b>{item.name}</b><span>{item.subtitle}</span></div><div className="cart-quantity"><button onClick={() => updateCart(item.index, -1)} aria-label={`تقليل ${item.name}`}><Minus size={13} /></button><strong>{quantity}</strong><button onClick={() => updateCart(item.index, 1)} aria-label={`زيادة ${item.name}`}><Plus size={13} /></button></div></div>)}
@@ -308,7 +321,7 @@ export default function Home() {
                 <div className="branch-delivery"><b>{selectedBranch.name}</b><span>{selectedBranch.address}</span></div>
                 <button className="store-checkout" onClick={openOrderRequest}><ShoppingBag size={16} />إرسال طلب إلى الفرع</button>
                 {orderMessage && <p className="store-order-message">{orderMessage}</p>}
-              </aside>
+              </motion.aside>
             </div>
           </div>
         </section>
@@ -322,6 +335,8 @@ export default function Home() {
           </div>
         </section>
       </main>
+
+      <AnimatePresence>{cartNotice && <motion.div className="cart-toast" role="status" initial={{ opacity: 0, y: 14, scale: .96 }} animate={{ opacity: 1, y: 0, scale: 1 }} exit={{ opacity: 0, y: 8, scale: .98 }} transition={{ duration: .2, ease: [0.23, 1, 0.32, 1] }}><ShoppingBag size={16} />{cartNotice}</motion.div>}</AnimatePresence>
 
       <footer className="footer"><span><strong>ماس</strong> — نكهات لها حضور</span><span>© 2026 · جميع الحقوق محفوظة</span></footer>
     </div>
